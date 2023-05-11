@@ -63,10 +63,10 @@ const CurrentlyReading = async request => {
 	);
 
 	console.log(books);
-	const body = combineList(
+	const body = "I'm currently reading " + combineList(
 		books.map(book => `<a href="${book.link}">${book.name} by ${book.author}</a>`)
 	);
-  
+
 	const headers = {
 		'Access-Control-Allow-Origin': '*',
 		'Content-type': 'text/html',
