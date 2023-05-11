@@ -1,3 +1,5 @@
+import { Env } from '..';
+
 const init = {
 	headers: {
 		'content-type': 'application/json;charset=UTF-8',
@@ -47,7 +49,7 @@ function combineList(list: string[]) {
 	return out;
 }
 
-const CurrentlyReading = async request => {
+const UpdateCurrentlyReading = async (env: Env) => {
 	const response = await fetch(currReading, init);
 
 	const json = await response.json();
@@ -86,11 +88,27 @@ const CurrentlyReading = async request => {
 			);
 	}
 
+	await env.BOOKS.put(CURRNETLY_READING_KEY_ID, body);
+};
+
+const CURRNETLY_READING_KEY_ID = 'all-animals'
+
+const CurrentlyReading = async (request, env: Env) => {
+	var body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
+
+	if (body === undefined || body === null) {
+		await UpdateCurrentlyReading(env);
+    body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
+	}
+
+  console.log(body);
+
 	const headers = {
 		'Access-Control-Allow-Origin': '*',
 		'Content-type': 'text/html',
 	};
+
 	return new Response(body, { headers });
 };
 
-export default CurrentlyReading;
+export { CurrentlyReading , UpdateCurrentlyReading};

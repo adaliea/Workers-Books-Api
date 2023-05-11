@@ -1,3 +1,11 @@
 name = "books" 
 main = "./src/index.ts"
 compatibility_date = "2022-05-03"
+
+kv_namespaces = [
+  { binding = "BOOKS", id = "d2a0fa80ed1f427898d78294cd9c5c63" , preview_id = "b6d0596c71f54366ac6be7e86dbaa729" }
+]
+
+[triggers]
+crons = ["*/30 * * * *"]
+
