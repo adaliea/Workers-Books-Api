@@ -12,7 +12,7 @@ class Book {
 	name!: string;
 	link!: string;
 	authors!: string[];
-  authorLinks!: string[];
+	authorLinks!: string[];
 }
 
 /**
@@ -50,30 +50,41 @@ function combineList(list: string[]) {
 const CurrentlyReading = async request => {
 	const response = await fetch(currReading, init);
 
-  const json = await response.json();
+	const json = await response.json();
 
-  let books: Book[] = [];
+	let books: Book[] = [];
 
-  json.reading_log_entries.forEach(
-    (bookJson: { work: { title: any; key: any; author_names: string[]; author_keys: string[]} }) => {
-      books.push({
-        name: bookJson.work.title,
-        link: host + bookJson.work.key,
-        authors: bookJson.work.author_names,
-        authorLinks: bookJson.work.author_keys.map(authorKey => host + authorKey),
-      });
-    }
-  );
+	json.reading_log_entries.forEach(
+		(bookJson: {
+			work: { title: any; key: any; author_names: string[]; author_keys: string[] };
+		}) => {
+			books.push({
+				name: bookJson.work.title,
+				link: host + bookJson.work.key,
+				authors: bookJson.work.author_names,
+				authorLinks: bookJson.work.author_keys.map(authorKey => host + authorKey),
+			});
+		}
+	);
 
-  var body : string;
+	var body: string;
 
-  if (books.length == 0) {
-    body = "";
-  } else {
-    body =
-      "I'm currently reading " +
-      combineList(books.map(book => `<a href="${book.link}">${book.name}</a> by ${combineList(book.authors.map((author, index) => `<a href="${book.authorLinks[index]}">${author}</a>`))}`));
-  }
+	if (books.length == 0) {
+		body = '';
+	} else {
+		body =
+			"I'm currently reading " +
+			combineList(
+				books.map(
+					book =>
+						`<a href="${book.link}">${book.name}</a> by ${combineList(
+							book.authors.map(
+								(author, index) => `<a href="${book.authorLinks[index]}">${author}</a>`
+							)
+						)}`
+				)
+			);
+	}
 
 	const headers = {
 		'Access-Control-Allow-Origin': '*',
