@@ -6,7 +6,7 @@ import { CurrentlyReading } from './handlers/currentlyreading';
 const router = Router();
 
 router
-  .get('/currentlyreading', CurrentlyReading)
-  .get('*', () => new Response('Not found', { status: 404 }));
+	.get('/currentlyreading', CurrentlyReading)
+	.get('*', () => new Response('Not found', { status: 404 }));
 
-export const handleRequest = (request: Request, env : Env) => router.handle(request, env);
+export const handleRequest = (request: Request, env: Env) => router.handle(request, env);

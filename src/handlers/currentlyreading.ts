@@ -91,17 +91,17 @@ const UpdateCurrentlyReading = async (env: Env) => {
 	await env.BOOKS.put(CURRNETLY_READING_KEY_ID, body);
 };
 
-const CURRNETLY_READING_KEY_ID = 'all-animals'
+const CURRNETLY_READING_KEY_ID = 'all-animals';
 
 const CurrentlyReading = async (request, env: Env) => {
 	var body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
 
 	if (body === undefined || body === null) {
 		await UpdateCurrentlyReading(env);
-    body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
+		body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
 	}
 
-  console.log(body);
+	console.log(body);
 
 	const headers = {
 		'Access-Control-Allow-Origin': '*',
@@ -111,4 +111,4 @@ const CurrentlyReading = async (request, env: Env) => {
 	return new Response(body, { headers });
 };
 
-export { CurrentlyReading , UpdateCurrentlyReading};
+export { CurrentlyReading, UpdateCurrentlyReading };
