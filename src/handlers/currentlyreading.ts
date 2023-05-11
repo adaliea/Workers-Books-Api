@@ -5,12 +5,14 @@ const init = {
 };
 
 const host = 'https://openlibrary.org';
-const url = host + '/people/dacubeking5259/books/currently-reading.json';
+const currReading = host + '/people/dacubeking5259/books/currently-reading.json';
+const recentRead = host + '/people/dacubeking5259/books/already-read.json';
 
 class Book {
 	name!: string;
 	link!: string;
-	author!: string;
+	authors!: string[];
+  authorLinks!: string[];
 }
 
 /**
@@ -46,26 +48,32 @@ function combineList(list: string[]) {
 }
 
 const CurrentlyReading = async request => {
-	const response = await fetch(url, init);
+	const response = await fetch(currReading, init);
 
-	const json = await response.json();
+  const json = await response.json();
 
-	let books: Book[] = [];
+  let books: Book[] = [];
 
-	json.reading_log_entries.forEach(
-		(bookJson: { work: { title: any; key: any; author_names: string[] } }) => {
-			books.push({
-				name: bookJson.work.title,
-				link: host + bookJson.work.key,
-				author: combineList(bookJson.work.author_names),
-			});
-		}
-	);
+  json.reading_log_entries.forEach(
+    (bookJson: { work: { title: any; key: any; author_names: string[]; author_keys: string[]} }) => {
+      books.push({
+        name: bookJson.work.title,
+        link: host + bookJson.work.key,
+        authors: bookJson.work.author_names,
+        authorLinks: bookJson.work.author_keys.map(authorKey => host + authorKey),
+      });
+    }
+  );
 
-	console.log(books);
-	const body = "I'm currently reading " + combineList(
-		books.map(book => `<a href="${book.link}">${book.name} by ${book.author}</a>`)
-	);
+  var body : string;
+
+  if (books.length == 0) {
+    body = "";
+  } else {
+    body =
+      "I'm currently reading " +
+      combineList(books.map(book => `<a href="${book.link}">${book.name}</a> by ${combineList(book.authors.map((author, index) => `<a href="${book.authorLinks[index]}">${author}</a>`))}`));
+  }
 
 	const headers = {
 		'Access-Control-Allow-Origin': '*',
