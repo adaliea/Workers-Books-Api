@@ -1,3 +1,4 @@
+import { IRequest } from 'itty-router';
 import { Env } from '..';
 
 const init = {
@@ -91,9 +92,9 @@ const UpdateCurrentlyReading = async (env: Env) => {
 	await env.BOOKS.put(CURRNETLY_READING_KEY_ID, body);
 };
 
-const CURRNETLY_READING_KEY_ID = 'all-animals';
+const CURRNETLY_READING_KEY_ID = 'currentlyReading';
 
-const CurrentlyReading = async (request, env: Env) => {
+const CurrentlyReading = async (request: IRequest, env: Env) => {
 	var body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
 
 	if (body === undefined || body === null) {

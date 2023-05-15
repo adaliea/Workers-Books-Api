@@ -1,5 +1,6 @@
 import { handleRequest } from './handler';
 import { UpdateCurrentlyReading } from './handlers/currentlyreading';
+import { UpdateRead } from './handlers/read';
 
 export interface Env {
 	//This will be auto-populated with the KV Namespace that is bound in the wrangler.toml
@@ -16,5 +17,6 @@ export default {
 	},
 	async scheduled(event: Request, env: Env, ctx: ExecutionContext) {
 		ctx.waitUntil(UpdateCurrentlyReading(env));
+		ctx.waitUntil(UpdateRead(env));
 	},
 };
