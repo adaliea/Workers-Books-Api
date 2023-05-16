@@ -13,6 +13,7 @@ class BookMetaData {
 	authorLinks!: string[];
 	published!: string;
 	coverLink!: string;
+	loggedDate!: string;
 }
 
 function getCover(id: string) {
@@ -49,7 +50,6 @@ const UpdateRead = async (env: Env) => {
 				},
                 logged_edition: string;
                 logged_date: string
-                ;
 			}) => {
 				books.push({
 					name: entry.work.title,
@@ -58,6 +58,7 @@ const UpdateRead = async (env: Env) => {
 					authorLinks: entry.work.author_keys.flatMap((key: string) => `https://openlibrary.org${key}`),
 					published: entry.work.first_publish_year,
 					coverLink: getCover(entry.work.cover_id.toString()),
+					loggedDate: entry.logged_date
 				});
 			}
 		);
@@ -69,10 +70,11 @@ const UpdateRead = async (env: Env) => {
 		}
 	}
 
-	const headers = {
-		'Access-Control-Allow-Origin': '*',
-		'Content-type': 'application/json; charset=UTF-8',
-	};
+	//Sort the books by the logged date
+
+	books.sort((a, b) => {
+		return new Date(b.loggedDate).getTime() - new Date(a.loggedDate).getTime();
+	});
 
     await env.BOOKS.put(READ_KEY, JSON.stringify(books));
 };
