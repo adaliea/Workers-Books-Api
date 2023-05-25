@@ -17,7 +17,7 @@ class BookMetaData {
 }
 
 function getCover(id: string) {
-	return `https://covers.openlibrary.org/b/id/${id}-M.jpg`;
+	return `https://covers.openlibrary.org/b/id/${id}-L.jpg`;
 }
 
 const init = {
@@ -95,4 +95,4 @@ const Read = async (request: IRequest, env: Env) => {
 	return new Response(json, { headers });
 };
 
-export { UpdateRead, Read };
+export { UpdateRead, Read, getCover};
