@@ -3,7 +3,7 @@ import { Env } from '..';
 import { getCover } from './read';
 
 const baseUrl = 'https://openlibrary.org';
-const maxResults = 1000;
+const maxResults = 10000;
 
 class BookMetaData {
 	name!: string;
@@ -26,23 +26,19 @@ class BookMetaData {
 
 const bookOverridesKV = 'bookoverrides.';
 
-const BestEdition = async (request: IRequest, env: Env) => {
-
-	// Take an work ID from the request path
-	const workId = request.query['workId'];
-
-	// If no work ID is provided, return a 400
-	if (!workId) {
-		return new Response('Please provide a work ID', { status: 400 });
-	}
-	const overrideData = await env.BOOKS.get(bookOverridesKV + workId.toString());
+async function getBestBooks(
+	workId: string,
+	env: Env,
+	bypassCache: boolean = false
+): Promise<BookMetaData[]> {
+	const overrideData = await env.BOOKS.get(bookOverridesKV + workId);
 	var bookMetaData: BookMetaData[] = [];
 
-	if (overrideData == null || overrideData == undefined) {
+	if (overrideData == null || overrideData == undefined || bypassCache) {
 		var url: string = `${baseUrl}/works/${workId}/editions.json?limit=${maxResults}`;
 
 		while (true) {
-			console.log('url' + url);
+			//console.log('url' + url);
 			// Get all editions of the work
 			const editionsResponse: {
 				links: {
@@ -98,9 +94,14 @@ const BestEdition = async (request: IRequest, env: Env) => {
 				}[];
 			} = await (await fetch(url)).json();
 
+			//console.log('editionsResponse' + JSON.stringify(editionsResponse));
+
 			// If no editions are found, return a 404
-			if (editionsResponse.entries.length == 0 && bookMetaData.length == 0) {
-				return new Response('No editions found', { status: 404 });
+			if (
+				!editionsResponse.entries ||
+				(editionsResponse.entries.length == 0 && bookMetaData.length == 0)
+			) {
+				return bookMetaData;
 			}
 
 			bookMetaData = editionsResponse.entries
@@ -110,8 +111,8 @@ const BestEdition = async (request: IRequest, env: Env) => {
 						entry.authors != null &&
 						(entry.languages == null ||
 							entry.languages.some(language => language.key == '/languages/eng')) &&
-						entry.covers != null &&
-						entry.covers.length > 0
+						!(entry.covers == undefined || entry.covers == null) &&
+						(entry.covers = entry.covers.filter(cover => cover != undefined && cover != null && cover > 0)).length > 0
 					);
 				})
 				.map(entry => {
@@ -149,7 +150,7 @@ const BestEdition = async (request: IRequest, env: Env) => {
 
 		// If no editions are found, return a 404
 		if (bookMetaData.length == 0) {
-			return new Response('No editions found, bookMetaData.length == 0', { status: 404 });
+			return bookMetaData;
 		}
 
 		// Sort the editions by their publish date
@@ -163,14 +164,55 @@ const BestEdition = async (request: IRequest, env: Env) => {
 			}
 		});
 	} else {
-		console.log('overrideData' + overrideData);
-		bookMetaData.push(
-			JSON.parse(overrideData) as BookMetaData
-		);
+		//console.log('overrideData' + overrideData);
+		bookMetaData.push(JSON.parse(overrideData) as BookMetaData);
 	}
 
-	console.log(request.query['render']);
-	console.log(request.query['render']);
+	return bookMetaData;
+}
+
+async function getBestBook(
+	workId: string,
+	env: Env,
+	bypassCache: boolean = false
+): Promise<BookMetaData> {
+	return (await getBestBooks(workId, env, bypassCache))[0];
+}
+
+const BestEdition = async (request: IRequest, env: Env) => {
+	const bypassCache = request.query['bypassCache'] == 'true';
+	// Take an work ID from the request path
+	const workId = request.query['workId'];
+
+	// If no work ID is provided, return a 400
+	if (!workId) {
+		return new Response('Please provide a work ID', { status: 400 });
+	}
+
+	var bookMetaData: BookMetaData[] = await getBestBooks(workId.toString(), env, bypassCache);
+
+	// Try deleting formats we don't want
+	const bookMetaDataWithFormats = bookMetaData.filter(book => {
+		// delete the formats we don't want (CD, AUDIO), be sure to be case insensitive
+		if (book.physicalFormat) {
+			var format = book.physicalFormat.toUpperCase();
+			
+			if (format.includes('CD') || format.includes('AUDIO')) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+	});
+	
+	if (bookMetaDataWithFormats.length > 0) {
+		bookMetaData = bookMetaDataWithFormats;
+	}
+
+	console.log('bookMetaData' + JSON.stringify(bookMetaDataWithFormats));
+
+	// console.log(request.query['render']);
+	// console.log(request.query['render']);
 	if (request.query['render'] && request.query['render'] == 'true') {
 		// Render the book metadata as HTML
 		const bookMetaDataHtml = bookMetaData
@@ -179,7 +221,7 @@ const BestEdition = async (request: IRequest, env: Env) => {
 				const coversHtml = book.covers.map(cover => {
 					var json = JSON.stringify(book);
 					var encodedJson = encodeURIComponent(json);
-					return `<a href="https://books.api.dacubeking.com/bestedition/edit?workId=${workId}&overrideData=${encodedJson}">
+					return `<a href="https://books.api.dacubeking.com/bestedition/edit?workId=${workId}&overrideData=${encodedJson}&cover=${cover}">
 						<img src="${getCover('' + cover)}" />
 					</a>`;
 				});
@@ -223,6 +265,12 @@ const BestEdition = async (request: IRequest, env: Env) => {
 						</div>
 						<div class="identifiers">
 							Identifiers: ${book.identifiers}
+						</div>
+						<div class="languages">
+							Languages: ${book.languages}
+						</div>
+						<div class="covers">
+							Covers: ${book.covers}
 						</div>
                     </div>
                 </div>
@@ -310,8 +358,7 @@ const EditBestEdition = async (request: IRequest, env: Env) => {
 	// get the overrideData parameter from the request
 	const overrideData = request.query['overrideData'];
 
-	console.log('workId ' + workId);
-	console.log('overrideData ' + overrideData);
+	const cover = request.query['cover'];
 
 	if (overrideData == null || overrideData == '' || overrideData == undefined) {
 		return new Response('No override data', { status: 400 });
@@ -321,15 +368,20 @@ const EditBestEdition = async (request: IRequest, env: Env) => {
 		return new Response('No workId', { status: 400 });
 	}
 
-	console.log(request.query)
+	if (cover == null || cover == '' || cover == undefined) {
+		return new Response('No cover', { status: 400 });
+	}
+
+	var data = JSON.parse(overrideData);
+
+	data.covers = [cover];
 
 	// put the overrideData into the KV store
-	await env.BOOKS.put(bookOverridesKV + workId, overrideData);
+	await env.BOOKS.put(bookOverridesKV + workId, overrideData.toString());
 	return new Response('Success', { status: 200 });
-}
+};
 
-
-export { BestEdition, EditBestEdition };
+export { BestEdition, EditBestEdition, getBestBook };
 
 function getAuthorLinks(book: BookMetaData) {
 	return book.authors
