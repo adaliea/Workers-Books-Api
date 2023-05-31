@@ -221,7 +221,7 @@ const BestEdition = async (request: IRequest, env: Env) => {
 				const coversHtml = book.covers.map(cover => {
 					var json = JSON.stringify(book);
 					var encodedJson = encodeURIComponent(json);
-					return `<a href="https://books.api.dacubeking.com/bestedition/edit?workId=${workId}&overrideData=${encodedJson}&cover=${cover}">
+					return `<a href="https://dacubeking.com/readingedit/editTitle?workId=${workId}&overrideData=${encodedJson}&cover=${cover}">
 						<img src="${getCover('' + cover)}" />
 					</a>`;
 				});
@@ -378,7 +378,21 @@ const EditBestEdition = async (request: IRequest, env: Env) => {
 
 	// put the overrideData into the KV store
 	await env.BOOKS.put(bookOverridesKV + workId, overrideData.toString());
-	return new Response('Success', { status: 200 });
+	await env.BOOKS.put("haveRead", "");
+	// Show a success message, then redirect to dacubeking.com/readingedit/reading
+	return new Response(
+		`<html>
+			<head>
+				<title>Success</title>
+				<meta http-equiv="refresh" content="0; url=https://dacubeking.com/readingedit/reading" />
+			</head>
+			<body>
+				<h1>Success</h1>
+				<p>Redirecting to <a href="https://dacubeking.com/readingedit/reading">https://dacubeking.com/readingedit/reading</a></p>
+			</body>
+		</html>`,
+		{ headers: { 'Content-type': 'text/html' } }
+	);
 };
 
 export { BestEdition, EditBestEdition, getBestBook };

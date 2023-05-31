@@ -108,7 +108,7 @@ const UpdateRead = async (env: Env) => {
 const Read = async (request: IRequest, env: Env) => {
 	var json = await env.BOOKS.get(READ_KEY);
 
-	if (json === undefined || json === null) {
+	if (json === undefined || json === null || json === '') {
 		await UpdateRead(env);
 		json = await env.BOOKS.get(READ_KEY);
 	}
