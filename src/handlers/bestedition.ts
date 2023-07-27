@@ -196,7 +196,7 @@ const BestEdition = async (request: IRequest, env: Env) => {
 		// delete the formats we don't want (CD, AUDIO), be sure to be case insensitive
 		if (book.physicalFormat) {
 			var format = book.physicalFormat.toUpperCase();
-			
+
 			if (format.includes('CD') || format.includes('AUDIO')) {
 				return false;
 			} else {
@@ -204,7 +204,7 @@ const BestEdition = async (request: IRequest, env: Env) => {
 			}
 		}
 	});
-	
+
 	if (bookMetaDataWithFormats.length > 0) {
 		bookMetaData = bookMetaDataWithFormats;
 	}

@@ -23,13 +23,17 @@ class Book {
  * Use await gatherResponse(..) in an async function to get the response body
  * @param {Response} response
  */
-async function gatherResponse(response) {
-	const { headers } = response;
-	const contentType = headers.get('content-type') || '';
-	if (contentType.includes('application/json')) {
-		return JSON.stringify(await response.json());
-	}
-	return response.text();
+async function gatherResponse(response: {
+  json?: any;
+  text?: any;
+  headers?: any;
+}) {
+  const { headers } = response;
+  const contentType = headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return JSON.stringify(await response.json());
+  }
+  return response.text();
 }
 
 function combineList(list: string[]) {
@@ -51,65 +55,82 @@ function combineList(list: string[]) {
 }
 
 const UpdateCurrentlyReading = async (env: Env) => {
-	const response = await fetch(currReading, init);
+  const response = await fetch(currReading, init);
 
-	const json = await response.json();
+  const json: {
+    reading_log_entries: {
+      work: {
+        title: any;
+        key: any;
+        author_names: string[];
+        author_keys: string[];
+      };
+    }[];
+  } = await response.json();
 
-	let books: Book[] = [];
+  let books: Book[] = [];
 
-	json.reading_log_entries.forEach(
-		(bookJson: {
-			work: { title: any; key: any; author_names: string[]; author_keys: string[] };
-		}) => {
-			books.push({
-				name: bookJson.work.title,
-				link: host + bookJson.work.key,
-				authors: bookJson.work.author_names,
-				authorLinks: bookJson.work.author_keys.map(authorKey => host + authorKey),
-			});
-		}
-	);
+  json.reading_log_entries.forEach(
+    (bookJson: {
+      work: {
+        title: any;
+        key: any;
+        author_names: string[];
+        author_keys: string[];
+      };
+    }) => {
+      books.push({
+        name: bookJson.work.title,
+        link: host + bookJson.work.key,
+        authors: bookJson.work.author_names,
+        authorLinks: bookJson.work.author_keys.map(
+          (authorKey) => host + authorKey
+        ),
+      });
+    }
+  );
 
-	var body: string;
+  var body: string;
 
-	if (books.length == 0) {
-		body = '';
-	} else {
-		body =
-			"I'm currently reading " +
-			combineList(
-				books.map(
-					book =>
-						`<a href="${book.link}">${book.name}</a> by ${combineList(
-							book.authors.map(
-								(author, index) => `<a href="${book.authorLinks[index]}">${author}</a>`
-							)
-						)}`
-				)
-			);
-	}
+  if (books.length == 0) {
+    body = "";
+  } else {
+    body =
+      "I'm currently reading " +
+      combineList(
+        books.map(
+          (book) =>
+            `<a href="${book.link}">${book.name}</a> by ${combineList(
+              book.authors.map(
+                (author, index) =>
+                  `<a href="${book.authorLinks[index]}">${author}</a>`
+              )
+            )}`
+        )
+      );
+  }
 
-	await env.BOOKS.put(CURRNETLY_READING_KEY_ID, body);
+  await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
 };
 
-const CURRNETLY_READING_KEY_ID = 'currentlyReading';
+const CURRENTLY_READING_KEY_ID = "currentlyReading";
 
 const CurrentlyReading = async (request: IRequest, env: Env) => {
-	var body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
+  var body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
 
-	if (body === undefined || body === null) {
-		await UpdateCurrentlyReading(env);
-		body = await env.BOOKS.get(CURRNETLY_READING_KEY_ID);
-	}
+  if (body === undefined || body === null) {
+    await UpdateCurrentlyReading(env);
+    body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
+  }
 
-	console.log(body);
+  console.log(body);
 
-	const headers = {
-		'Access-Control-Allow-Origin': '*',
-		'Content-type': 'text/html',
-	};
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-type": "text/html",
+  };
 
-	return new Response(body, { headers });
+  return new Response(body, { headers });
 };
 
 export { CurrentlyReading, UpdateCurrentlyReading };
