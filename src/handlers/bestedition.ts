@@ -164,7 +164,10 @@ async function getBestBooks(
 			}
 		});
 		if (!bypassCache) {
-      await env.BOOKS.put(bookOverridesKV + workId, bookMetaData[0].toString());
+      await env.BOOKS.put(
+        bookOverridesKV + workId,
+        JSON.stringify(bookMetaData[0])
+      );
     }
 	} else {
 		//console.log('overrideData' + overrideData);
