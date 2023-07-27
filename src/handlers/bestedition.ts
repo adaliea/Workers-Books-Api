@@ -163,6 +163,9 @@ async function getBestBooks(
 				return 0;
 			}
 		});
+		if (!bypassCache) {
+      await env.BOOKS.put(bookOverridesKV + workId, bookMetaData[0].toString());
+    }
 	} else {
 		//console.log('overrideData' + overrideData);
 		bookMetaData.push(JSON.parse(overrideData) as BookMetaData);

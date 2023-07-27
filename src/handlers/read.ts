@@ -2,6 +2,8 @@ import { IRequest } from 'itty-router';
 import { Env } from '..';
 import { getBestBook } from './bestedition';
 
+const maxResults = 10000;
+
 const READ_KEY = "READING_LIST";
 
 const host = "https://openlibrary.org";
@@ -35,7 +37,6 @@ const init = {
 
 const UpdateRead = async (env: Env) => {
   // keep getting pages until we get to the end
-  let page = 1;
   let books: BookMetaData[] = [];
 
   console.log("Updating read books");
@@ -43,6 +44,7 @@ const UpdateRead = async (env: Env) => {
     [RECENT_READ, "read"],
     [CURRENTLY_READING, "currentlyReading"],
   ]) {
+    let page = 1;
     while (true) {
       let bookJson: {
         reading_log_entries: {
@@ -57,7 +59,9 @@ const UpdateRead = async (env: Env) => {
           logged_edition: string;
           logged_date: string;
         }[];
-      } = await fetch(`${listLink}?page=${page}`).then((res) => res.json());
+      } = await fetch(`${listLink}?page=${page}?limit=${maxResults}`).then(
+        (res) => res.json()
+      );
 
       if (bookJson.reading_log_entries.length == 0) {
         console.log("No more books");
