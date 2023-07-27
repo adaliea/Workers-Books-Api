@@ -59,7 +59,7 @@ const UpdateRead = async (env: Env) => {
           logged_edition: string;
           logged_date: string;
         }[];
-      } = await fetch(`${listLink}?page=${page}?limit=${maxResults}`).then(
+      } = await fetch(`${listLink}?page=${page}&limit=${maxResults}`).then(
         (res) => res.json()
       );
 
@@ -74,7 +74,7 @@ const UpdateRead = async (env: Env) => {
         var key = entry.work.key.split("/").pop();
         await getBestBook(key, env)
           .then((data) => {
-            console.log(data);
+            //console.log(data);
             return data;
           })
           .then((work) => {
@@ -98,9 +98,8 @@ const UpdateRead = async (env: Env) => {
             console.error("Error" + err);
           });
       }
+      page++;
     }
-
-    page++;
 
     if (page > 10) {
       break;
@@ -109,15 +108,124 @@ const UpdateRead = async (env: Env) => {
 
   //Sort the books by the logged date
 
-  books.sort((a, b) => {
+  const sortByLoggedDate = (a: BookMetaData, b: BookMetaData) => {
+    if (a.loggedDate === undefined || b.loggedDate === undefined) {
+      return 0;
+    }
+    // Put the currently reading books at the top
+    if (a.list === "currentlyReading" && b.list !== "currentlyReading") {
+      return -1;
+    }
+    if (a.list !== "currentlyReading" && b.list === "currentlyReading") {
+      return 1;
+    }
     return new Date(b.loggedDate).getTime() - new Date(a.loggedDate).getTime();
-  });
+  };
+
+  const UpdateRead = async (env: Env) => {
+    // keep getting pages until we get to the end
+    let books: BookMetaData[] = [];
+
+    console.log("Updating read books");
+    for (let [listLink, listName] of [
+      [RECENT_READ, "read"],
+      [CURRENTLY_READING, "currentlyReading"],
+    ]) {
+      let page = 1;
+      while (true) {
+        let bookJson: {
+          reading_log_entries: {
+            work: {
+              title: string;
+              key: string;
+              author_keys: string[];
+              author_names: string[];
+              cover_id: number;
+              first_publish_year: string;
+            };
+            logged_edition: string;
+            logged_date: string;
+          }[];
+        } = await fetch(`${listLink}?page=${page}&limit=${maxResults}`).then(
+          (res) => res.json()
+        );
+
+        if (bookJson.reading_log_entries.length == 0) {
+          console.log("No more books");
+          break;
+        } else {
+          console.log(`Got page ${page}`);
+        }
+
+        for (let entry of bookJson.reading_log_entries) {
+          var key = entry.work.key.split("/").pop();
+          await getBestBook(key, env)
+            .then((data) => {
+              //console.log(data);
+              return data;
+            })
+            .then((work) => {
+              //console.log('data: ' + JSON.stringify(work));
+              books.push({
+                name: work.name,
+                link: work.link,
+                authors: entry.work.author_names,
+                authorLinks: entry.work.author_keys.flatMap(
+                  (key: string) => `https://openlibrary.org${key}`
+                ),
+                published: entry.work.first_publish_year,
+                coverLink: getCover(work.covers[0].toString()),
+                loggedDate: entry.logged_date,
+                workId: key,
+                list: listName,
+                pages: work.pages,
+              });
+            })
+            .catch((err) => {
+              console.error("Error" + err);
+            });
+        }
+        page++;
+      }
+
+      if (page > 10) {
+        break;
+      }
+    }
+
+    //Sort the books by the logged date
+    books.sort(sortByLoggedDate);
+
+    if (books.length < 1) {
+      console.log("No books found");
+      return;
+    }
+    //console.log("books: " + JSON.stringify(books));
+
+    await env.BOOKS.put(READ_KEY, JSON.stringify(books));
+  };
+
+  const Read = async (request: IRequest, env: Env) => {
+    var json = await env.BOOKS.get(READ_KEY);
+
+    if (json === undefined || json === null || json === "") {
+      await UpdateRead(env);
+      json = await env.BOOKS.get(READ_KEY);
+    }
+
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Content-type": "application/json; charset=UTF-8",
+    };
+
+    return new Response(json, { headers });
+  };
 
   if (books.length < 1) {
     console.log("No books found");
     return;
   }
-  console.log("books: " + JSON.stringify(books));
+  //console.log("books: " + JSON.stringify(books));
 
   await env.BOOKS.put(READ_KEY, JSON.stringify(books));
 };
