@@ -19,6 +19,8 @@ class BookMetaData {
   loggedDate!: string;
   workId!: string;
   list!: string;
+  pages!: number | undefined;
+  percentComplete: number = 0;
 }
 
 function getCover(id: string) {
@@ -85,6 +87,7 @@ const UpdateRead = async (env: Env) => {
               loggedDate: entry.logged_date,
               workId: key,
               list: listName,
+              pages: work.pages,
             });
           })
           .catch((err) => {
