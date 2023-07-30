@@ -85,7 +85,9 @@ const UpdateRead = async (env: Env) => {
             var pages = work.pages;
             if (listName == CURRENTLY_READING_KEY) {
               // get the percent complete
-              var data = await env.BOOKS.get(key + "progress");
+              var progressKey = key + "progress";
+              var data = await env.BOOKS.get(progressKey);
+
               if (data != null) {
                 var json = JSON.parse(data);
                 percentComplete = json.percent;
@@ -106,7 +108,7 @@ const UpdateRead = async (env: Env) => {
               workId: key,
               list: listName,
               pages: pages,
-              percentComplete: 0,
+              percentComplete: percentComplete,
             });
           })
           .catch((err) => {

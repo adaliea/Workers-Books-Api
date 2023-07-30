@@ -12,10 +12,11 @@ const currReading = host + '/people/dacubeking5259/books/currently-reading.json'
 const recentRead = host + '/people/dacubeking5259/books/already-read.json';
 
 class Book {
-	name!: string;
-	link!: string;
-	authors!: string[];
-	authorLinks!: string[];
+  name!: string;
+  link!: string;
+  authors!: string[];
+  authorLinks!: string[];
+  workId!: string;
 }
 
 /**
@@ -37,21 +38,21 @@ async function gatherResponse(response: {
 }
 
 function combineList(list: string[]) {
-	var out = '';
+  var out = "";
 
-	// combine all of the elements into a nicely formatted string with commas and an "&"
-	// be sure not to add "&" if there is only one element in the list
-	for (var i = 0; i < list.length; i++) {
-		if (i == 0) {
-			out += list[i];
-		} else if (i == list.length - 1) {
-			out += ' & ' + list[i];
-		} else {
-			out += ', ' + list[i];
-		}
-	}
+  // combine all of the elements into a nicely formatted string with commas and an "&"
+  // be sure not to add "&" if there is only one element in the list
+  for (var i = 0; i < list.length; i++) {
+    if (i == 0) {
+      out += list[i];
+    } else if (i == list.length - 1) {
+      out += " & " + list[i];
+    } else {
+      out += ", " + list[i];
+    }
+  }
 
-	return out;
+  return out;
 }
 
 const UpdateCurrentlyReading = async (env: Env) => {
@@ -86,6 +87,7 @@ const UpdateCurrentlyReading = async (env: Env) => {
         authorLinks: bookJson.work.author_keys.map(
           (authorKey) => host + authorKey
         ),
+        workId: bookJson.work.key.split("/").pop(),
       });
     }
   );
@@ -95,19 +97,29 @@ const UpdateCurrentlyReading = async (env: Env) => {
   if (books.length == 0) {
     body = "";
   } else {
-    body =
-      "I'm currently reading " +
-      combineList(
-        books.map(
-          (book) =>
-            `<a href="${book.link}">${book.name}</a> by ${combineList(
-              book.authors.map(
-                (author, index) =>
-                  `<a href="${book.authorLinks[index]}">${author}</a>`
-              )
-            )}`
+    const bookPromises = books.map(async (book) => {
+      var percentComplete = 0;
+
+      // get the percent complete
+      var data = await env.BOOKS.get(book.workId + "progress");
+      if (data != null) {
+        var json = JSON.parse(data);
+        percentComplete = json.percent;
+      }
+
+      return `<a href="${book.link}">${book.name}</a> by ${combineList(
+        book.authors.map(
+          (author, index) =>
+            `<a href="${book.authorLinks[index]}">${author}</a>`
         )
-      );
+      )} <span class="reading-percentage">(${Math.round(
+        percentComplete * 100
+      )}%)</span>`;
+    });
+
+    const bookHtml = await Promise.all(bookPromises);
+
+    body = "I'm currently reading " + combineList(bookHtml);
   }
 
   await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
