@@ -18,6 +18,6 @@ export const CurrentlyReadingPageCounts = async (
   }
   env.BOOKS.put(workId + "progress", JSON.stringify({ percent, totalPages }));
 
-  var body = "OK";
+  var body = 'Success<meta http-equiv="refresh" content="2; URL=https://dacubeking.com/readingedit/updateProgress" />';
   return new Response(body, { headers });
 };
