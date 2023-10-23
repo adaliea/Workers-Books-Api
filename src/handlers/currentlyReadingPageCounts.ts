@@ -16,7 +16,7 @@ export const CurrentlyReadingPageCounts = async (
   if (!workId || !percent || !totalPages) {
     return new Response("Missing required params", { status: 400, headers });
   }
-  env.BOOKS.put(workId + "progress", JSON.stringify({ percent, totalPages }));
+  await env.BOOKS.put(workId + "progress", JSON.stringify({ percent, totalPages }));
 
 	const returnJson = JSON.stringify({ workId, percent, totalPages });
 
