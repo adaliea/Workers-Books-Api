@@ -156,7 +156,13 @@ const UpdateRead = async (env: Env) => {
   }
   //console.log("books: " + JSON.stringify(books));
 
-  await env.BOOKS.put(READ_KEY, JSON.stringify(books));
+  var json = JSON.stringify(books);
+  var current = await env.BOOKS.get(READ_KEY);
+
+  if (json != current) {
+    // We have less writes than reads, so we can save some usage by only writing if the data has changed
+    await env.BOOKS.put(READ_KEY, json);
+  }
 };
 
 const Read = async (request: IRequest, env: Env) => {

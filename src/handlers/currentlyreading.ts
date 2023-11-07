@@ -122,7 +122,11 @@ const UpdateCurrentlyReading = async (env: Env) => {
     body = "I'm currently reading " + combineList(bookHtml);
   }
 
-  await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
+  var current = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
+  if (current != body) {
+    // We have less writes than reads, so we can save some usage by only writing if the data has changed
+    await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
+  }
 };
 
 const CURRENTLY_READING_KEY_ID = "currentlyReading";
