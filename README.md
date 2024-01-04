@@ -114,6 +114,7 @@ Respone:
 Redirects to `https://dacubeking.com/readingedit/reading`
 
 ## Progress Editing (requires valid oauth token)
+https://dacubeking.com/readingedit/updateProgress
 
 ### Params
 - workId: OpenLibrary ID for the work we're intrested in
