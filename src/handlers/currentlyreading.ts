@@ -1,5 +1,6 @@
 import { IRequest } from 'itty-router';
 import { Env } from '..';
+import { getBestBook } from './bestedition';
 
 const init = {
 	headers: {
@@ -71,7 +72,7 @@ const UpdateCurrentlyReading = async (env: Env) => {
 
   let books: Book[] = [];
 
-  json.reading_log_entries.forEach(
+  await json.reading_log_entries.forEach(
     (bookJson: {
       work: {
         title: any;
@@ -79,14 +80,14 @@ const UpdateCurrentlyReading = async (env: Env) => {
         author_names: string[];
         author_keys: string[];
       };
-    }) => {
+    }) => async () =>{
+      let bookMeta = await getBestBook(bookJson.work.key.split("/").pop(), env);
+      
       books.push({
-        name: bookJson.work.title,
-        link: host + bookJson.work.key,
-        authors: bookJson.work.author_names,
-        authorLinks: bookJson.work.author_keys.map(
-          (authorKey) => host + authorKey
-        ),
+        name: bookMeta.name,
+        link: bookMeta.link,
+        authors: bookMeta.authors,
+        authorLinks: bookMeta.authorLinks,
         workId: bookJson.work.key.split("/").pop(),
       });
     }
