@@ -16,7 +16,7 @@ export default {
 		return handleRequest(request, env);
 	},
 	async scheduled(event: Request, env: Env, ctx: ExecutionContext) {
-		ctx.waitUntil(UpdateCurrentlyReading(env));
 		ctx.waitUntil(UpdateRead(env));
+		ctx.waitUntil(UpdateCurrentlyReading(env));
 	},
 };

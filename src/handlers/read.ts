@@ -181,4 +181,19 @@ const Read = async (request: IRequest, env: Env) => {
 	return new Response(json, { headers });
 };
 
-export { UpdateRead, Read, getCover };
+const getReadBooks = async (env: Env): Promise<BookMetaData[]> => {
+  var json = await env.BOOKS.get(READ_KEY);
+
+	if (json === undefined || json === null || json === '') {
+		await UpdateRead(env);
+		json = await env.BOOKS.get(READ_KEY);
+	}
+
+  if (json == null) {
+    return [] as BookMetaData[]
+  }
+
+  return JSON.parse(json)
+}
+
+export { UpdateRead, Read, getCover, getReadBooks };

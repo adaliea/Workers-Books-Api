@@ -1,6 +1,10 @@
 import { IRequest } from 'itty-router';
 import { Env } from '..';
 import { getBestBook } from './bestedition';
+import { Read, getReadBooks } from './read';
+
+const CURRENTLY_READING_KEY_ID = "currentlyReading";
+const OPEN_LIBRARY_CURRENTLY_READING_LIST = "Currently Reading"
 
 const init = {
 	headers: {
@@ -57,41 +61,9 @@ function combineList(list: string[]) {
 }
 
 const UpdateCurrentlyReading = async (env: Env) => {
-  const response = await fetch(currReading, init);
+  let data = await getReadBooks(env);
 
-  const json: {
-    reading_log_entries: {
-      work: {
-        title: any;
-        key: any;
-        author_names: string[];
-        author_keys: string[];
-      };
-    }[];
-  } = await response.json();
-
-  let books: Book[] = [];
-
-  await json.reading_log_entries.forEach(
-    (bookJson: {
-      work: {
-        title: any;
-        key: any;
-        author_names: string[];
-        author_keys: string[];
-      };
-    }) => async () =>{
-      let bookMeta = await getBestBook(bookJson.work.key.split("/").pop(), env);
-      
-      books.push({
-        name: bookMeta.name,
-        link: bookMeta.link,
-        authors: bookMeta.authors,
-        authorLinks: bookMeta.authorLinks,
-        workId: bookJson.work.key.split("/").pop(),
-      });
-    }
-  );
+  let books = data.filter(b => b.list == OPEN_LIBRARY_CURRENTLY_READING_LIST)
 
   var body: string;
 
@@ -129,8 +101,6 @@ const UpdateCurrentlyReading = async (env: Env) => {
     await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
   }
 };
-
-const CURRENTLY_READING_KEY_ID = "currentlyReading";
 
 const CurrentlyReading = async (request: IRequest, env: Env) => {
   var body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
