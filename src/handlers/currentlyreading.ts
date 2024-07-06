@@ -81,10 +81,7 @@ const UpdateCurrentlyReading = async (env: Env) => {
       }
 
       return `<a href="${book.link}">${book.name}</a> by ${combineList(
-        book.authors.map(
-          (author, index) =>
-            `<a href="${book.authorLinks[index]}">${author}</a>`
-        )
+        book.authors
       )} <span class="reading-percentage">(${Math.round(
         percentComplete * 100
       )}%)</span>`;

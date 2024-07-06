@@ -2,14 +2,14 @@ import { IRequest } from 'itty-router';
 import { Env } from '..';
 import { getBestBook } from './bestedition';
 
-const maxResults = 10000;
-
 const READ_KEY = "READING_LIST";
 
-const host = "https://openlibrary.org";
-const ALREADY_READ = host + "/people/dacubeking5259/books/already-read.json";
-const CURRENTLY_READING =
-  host + "/people/dacubeking5259/books/currently-reading.json";
+const GOOGLE_BOOKS_UID = "117863623315850851352"
+
+
+const ALREADY_READ = `https://www.googleapis.com/books/v1/users/${GOOGLE_BOOKS_UID}/bookshelves/4/volumes`
+const CURRENTLY_READING = `https://www.googleapis.com/books/v1/users/${GOOGLE_BOOKS_UID}/bookshelves/3/volumes`
+
 
 class BookMetaData {
   name!: string;
@@ -25,8 +25,10 @@ class BookMetaData {
   percentComplete: number = 0;
 }
 
-function getCover(id: string) {
-  return `https://covers.openlibrary.org/b/id/${id}-L.jpg`;
+function getCover(coverUrl: string) {
+  const parsedUrl = new URL(coverUrl);
+  parsedUrl.searchParams.set('zoom', "4");
+  return parsedUrl.toString();
 }
 
 const init = {
@@ -44,84 +46,90 @@ const UpdateRead = async (env: Env) => {
 
   console.log("Updating read books");
   for (let [listLink, listName] of [
-    [ALREADY_READ, ALREADY_READ_KEY],
     [CURRENTLY_READING, CURRENTLY_READING_KEY],
+    [ALREADY_READ, ALREADY_READ_KEY],
   ]) {
-    let page = 1;
-    while (true) {
+    let maxResults = 1000;
+    for (let i = 0; i < maxResults; i += 40) {
       let bookJson: {
-        reading_log_entries: {
-          work: {
+        kind: string;
+        totalItems: number;
+        items: {
+          kind: string;
+          id: string;
+          etag: string;
+          selfLink: string;
+          volumeInfo: {
             title: string;
-            key: string;
-            author_keys: string[];
-            author_names: string[];
-            cover_id: number;
-            first_publish_year: string;
+            authors: string[];
+            publishedDate: string;
+            description: string;
+            industryIdentifiers: {
+              type: string;
+              identifier: string;
+            }[];
+            readingModes: {
+              text: boolean;
+              image: boolean;
+            };
+            pageCount: number;
+            printType: string;
+            categories: string[];
+            averageRating: number;
+            ratingsCount: number;
+            maturityRating: string;
+            allowAnonLogging: boolean;
+            contentVersion: string;
+            panelizationSummary: {
+              containsEpubBubbles: boolean;
+              containsImageBubbles: boolean;
+            };
+            imageLinks: {
+              smallThumbnail: string;
+              thumbnail: string;
+            };
           };
-          logged_edition: string;
-          logged_date: string;
         }[];
-      } = await fetch(`${listLink}?page=${page}&limit=${maxResults}`).then(
+      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}`).then(
         (res) => res.json()
       );
 
-      if (bookJson.reading_log_entries.length == 0) {
-        console.log("No more books");
-        break;
-      } else {
-        console.log(`Got page ${page}`);
-      }
+      maxResults = bookJson.totalItems;
 
-      for (let entry of bookJson.reading_log_entries) {
-        var key = entry.work.key.split("/").pop();
-        await getBestBook(key, env)
-          .then((data) => {
-            //console.log(data);
-            return data;
-          })
-          .then(async (work) => {
-            var percentComplete = 0;
-            var pages = work.pages;
-            if (listName == CURRENTLY_READING_KEY) {
-              // get the percent complete
-              var progressKey = key + "progress";
-              var data = await env.BOOKS.get(progressKey);
+      console.log("bookJson: " + JSON.stringify(bookJson));
 
-              if (data != null) {
-                var json = JSON.parse(data);
-                percentComplete = json.percent;
-                pages = json.totalPages;
-              }
-            }
+      bookJson.items.forEach((book) => {
+        let bookCover;
+        if (!book.volumeInfo.imageLinks) {
+          bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
+        } else {
+          bookCover = book.volumeInfo.imageLinks.thumbnail;
+        }
+        if (!bookCover) {
+          bookCover = book.volumeInfo.imageLinks.smallThumbnail;
+        }
+        if (!bookCover) {
+          bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
+        }
 
-            books.push({
-              name: work.name,
-              link: work.link,
-              authors: entry.work.author_names,
-              authorLinks: entry.work.author_keys.flatMap(
-                (key: string) => `https://openlibrary.org${key}`
-              ),
-              published: entry.work.first_publish_year,
-              coverLink: getCover(work.covers[0].toString()),
-              loggedDate: entry.logged_date,
-              workId: key,
-              list: listName,
-              pages: pages,
-              percentComplete: percentComplete,
-            });
-          })
-          .catch((err) => {
-            console.error("Error" + err);
-          });
-      }
-      page++;
-    }
+        let bookMetaData = new BookMetaData();
+        bookMetaData.name = book.volumeInfo.title;
+        bookMetaData.link = book.selfLink;
+        bookMetaData.authors = book.volumeInfo.authors;
+        bookMetaData.authorLinks = book.volumeInfo.authors.map((author) =>
+          `https://www.google.com/search?q=${author}`
+        );
+        bookMetaData.published = book.volumeInfo.publishedDate;
+        bookMetaData.coverLink = getCover(bookCover);
+        bookMetaData.workId = book.id;
+        bookMetaData.list = listName;
+        bookMetaData.pages = book.volumeInfo.pageCount;
 
-    if (page > 10) {
-      break;
+        books.push(bookMetaData);
+      });
     }
   }
+
 
   //Sort the books by the logged date
 
@@ -166,28 +174,28 @@ const UpdateRead = async (env: Env) => {
 };
 
 const Read = async (request: IRequest, env: Env) => {
-	var json = await env.BOOKS.get(READ_KEY);
+  var json = await env.BOOKS.get(READ_KEY);
 
-	if (json === undefined || json === null || json === '') {
-		await UpdateRead(env);
-		json = await env.BOOKS.get(READ_KEY);
-	}
+  if (json === undefined || json === null || json === '') {
+    await UpdateRead(env);
+    json = await env.BOOKS.get(READ_KEY);
+  }
 
-	const headers = {
-		'Access-Control-Allow-Origin': '*',
-		'Content-type': 'application/json; charset=UTF-8',
-	};
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-type': 'application/json; charset=UTF-8',
+  };
 
-	return new Response(json, { headers });
+  return new Response(json, { headers });
 };
 
 const getReadBooks = async (env: Env): Promise<BookMetaData[]> => {
   var json = await env.BOOKS.get(READ_KEY);
 
-	if (json === undefined || json === null || json === '') {
-		await UpdateRead(env);
-		json = await env.BOOKS.get(READ_KEY);
-	}
+  if (json === undefined || json === null || json === '') {
+    await UpdateRead(env);
+    json = await env.BOOKS.get(READ_KEY);
+  }
 
   if (json == null) {
     return [] as BookMetaData[]

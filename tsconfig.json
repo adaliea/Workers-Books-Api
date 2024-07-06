@@ -9,6 +9,8 @@
 		"preserveConstEnums": true,
 		"moduleResolution": "node",
 		"sourceMap": true,
+		"noImplicitAny": true, 
+		"strictNullChecks": false,
 		"types": ["@cloudflare/workers-types", "@types/jest"]
 	},
 	"include": ["src"],
