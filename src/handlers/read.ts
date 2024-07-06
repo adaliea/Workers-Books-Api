@@ -26,9 +26,10 @@ class BookMetaData {
 }
 
 function getCover(coverUrl: string) {
-  const parsedUrl = new URL(coverUrl);
-  parsedUrl.searchParams.set('zoom', "4");
-  return parsedUrl.toString();
+  return coverUrl;
+  // const parsedUrl = new URL(coverUrl);
+  // parsedUrl.searchParams.set('zoom', "4");
+  // return parsedUrl.toString();
 }
 
 const init = {
@@ -80,6 +81,7 @@ const UpdateRead = async (env: Env) => {
             maturityRating: string;
             allowAnonLogging: boolean;
             contentVersion: string;
+            previewLink: string;
             panelizationSummary: {
               containsEpubBubbles: boolean;
               containsImageBubbles: boolean;
@@ -114,7 +116,7 @@ const UpdateRead = async (env: Env) => {
 
         let bookMetaData = new BookMetaData();
         bookMetaData.name = book.volumeInfo.title;
-        bookMetaData.link = book.selfLink;
+        bookMetaData.link = book.volumeInfo.previewLink;
         bookMetaData.authors = book.volumeInfo.authors;
         bookMetaData.authorLinks = book.volumeInfo.authors.map((author) =>
           `https://www.google.com/search?q=${author}`
