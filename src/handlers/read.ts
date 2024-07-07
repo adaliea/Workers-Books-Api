@@ -114,6 +114,22 @@ const UpdateRead = async (env: Env) => {
           bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
         }
 
+        let splitDate = book.volumeInfo.publishedDate.split("-");
+        let date;
+        if (splitDate.length === 1) {
+          date = splitDate[0];
+        } else {
+          let year = splitDate[0];
+          let monthNumber = parseInt(splitDate[1]);
+          if (monthNumber < 1 || monthNumber > 12) {
+            date = year;
+          } else {
+            let month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][monthNumber - 1];
+            date = `${month} ${year}`;
+          }
+        }
+
+
         let bookMetaData = new BookMetaData();
         bookMetaData.name = book.volumeInfo.title;
         bookMetaData.link = book.volumeInfo.previewLink;
