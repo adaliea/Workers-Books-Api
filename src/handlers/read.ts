@@ -92,7 +92,7 @@ const UpdateRead = async (env: Env) => {
             };
           };
         }[];
-      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}`).then(
+      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en`).then(
         (res) => res.json()
       );
 
