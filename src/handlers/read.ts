@@ -100,7 +100,7 @@ const UpdateRead = async (env: Env) => {
 
       console.log("bookJson: " + JSON.stringify(bookJson));
 
-      bookJson.items.forEach((book) => {
+      Promise.all(bookJson.items.map(async (book) => {
         let bookCover;
         if (!book.volumeInfo.imageLinks) {
           bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
@@ -131,20 +131,31 @@ const UpdateRead = async (env: Env) => {
 
 
         let bookMetaData = new BookMetaData();
+        books.push(bookMetaData);
         bookMetaData.name = book.volumeInfo.title;
         bookMetaData.link = book.volumeInfo.previewLink;
         bookMetaData.authors = book.volumeInfo.authors;
         bookMetaData.authorLinks = book.volumeInfo.authors.map((author) =>
           `https://www.google.com/search?q=${author}`
         );
-        bookMetaData.published = book.volumeInfo.publishedDate;
+        bookMetaData.published = date;
         bookMetaData.coverLink = getCover(bookCover);
         bookMetaData.workId = book.id;
         bookMetaData.list = listName;
         bookMetaData.pages = book.volumeInfo.pageCount;
 
-        books.push(bookMetaData);
-      });
+        if (listName === CURRENTLY_READING_KEY) {
+          var percentComplete = 0;
+
+          // get the percent complete
+          var data = await env.BOOKS.get(book.id + "progress");
+          if (data != null) {
+            var json = JSON.parse(data);
+            percentComplete = json.percent;
+          }
+        }
+        bookMetaData.percentComplete = percentComplete;
+      }));
     }
   }
 

@@ -71,14 +71,7 @@ const UpdateCurrentlyReading = async (env: Env) => {
     body = "";
   } else {
     const bookPromises = books.map(async (book) => {
-      var percentComplete = 0;
-
-      // get the percent complete
-      var data = await env.BOOKS.get(book.workId + "progress");
-      if (data != null) {
-        var json = JSON.parse(data);
-        percentComplete = json.percent;
-      }
+      var percentComplete = book.percentComplete;
 
       return `<a href="${book.link}">${book.name}</a> by ${combineList(
         book.authors
