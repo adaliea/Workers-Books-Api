@@ -129,11 +129,15 @@ const UpdateRead = async (env: Env) => {
           }
         }
 
+        let previewLink = new URL(book.volumeInfo.previewLink);
+        previewLink.searchParams.set('printsec', "0");
+        let previewLinkString = previewLink.toString().replace(previewLink.origin, "https://books.google.com");
+
 
         let bookMetaData = new BookMetaData();
         books.push(bookMetaData);
         bookMetaData.name = book.volumeInfo.title;
-        bookMetaData.link = book.volumeInfo.previewLink;
+        bookMetaData.link = previewLinkString;
         bookMetaData.authors = book.volumeInfo.authors;
         bookMetaData.authorLinks = book.volumeInfo.authors.map((author) =>
           `https://www.google.com/search?q=${author}`
