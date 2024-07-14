@@ -26,10 +26,10 @@ class BookMetaData {
 }
 
 function getCover(coverUrl: string) {
-  return coverUrl;
-  // const parsedUrl = new URL(coverUrl);
-  // parsedUrl.searchParams.set('zoom', "4");
-  // return parsedUrl.toString();
+  const parsedUrl = new URL(coverUrl);
+  parsedUrl.searchParams.set('edge', "0");
+  //parsedUrl.searchParams.set('zoom', "4");
+  return parsedUrl.toString();
 }
 
 const init = {
