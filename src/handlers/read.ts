@@ -29,7 +29,7 @@ function getCover(coverUrl: string) {
   const parsedUrl = new URL(coverUrl);
   parsedUrl.searchParams.set('edge', "0");
   //parsedUrl.searchParams.set('zoom', "4");
-  return parsedUrl.toString();
+  return parsedUrl.toString().replace(parsedUrl.origin, "https://books.google.com");
 }
 
 const init = {
