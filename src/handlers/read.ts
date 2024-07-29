@@ -29,7 +29,7 @@ function getCover(coverUrl: string) {
   const parsedUrl = new URL(coverUrl);
   parsedUrl.searchParams.set('edge', "0");
   //parsedUrl.searchParams.set('zoom', "4");
-  return parsedUrl.toString().replace(parsedUrl.origin, "https://books.google.com");
+  return parsedUrl.toString().replace("http://", "https://");
 }
 
 const init = {
@@ -207,9 +207,12 @@ const UpdateRead = async (env: Env) => {
 };
 
 const Read = async (request: IRequest, env: Env) => {
-  var json = await env.BOOKS.get(READ_KEY);
+  let shouldBypassCache = request.query["bypassCache"] === "true";
+  if (!shouldBypassCache) {
+    var json = await env.BOOKS.get(READ_KEY);
+  }
 
-  if (json === undefined || json === null || json === '') {
+  if (shouldBypassCache || json === undefined || json === null || json === '') {
     await UpdateRead(env);
     json = await env.BOOKS.get(READ_KEY);
   }
@@ -222,10 +225,12 @@ const Read = async (request: IRequest, env: Env) => {
   return new Response(json, { headers });
 };
 
-const getReadBooks = async (env: Env): Promise<BookMetaData[]> => {
-  var json = await env.BOOKS.get(READ_KEY);
+const getReadBooks = async (env: Env, bypassCache = false): Promise<BookMetaData[]> => {
+  if (!bypassCache) {
+    var json = await env.BOOKS.get(READ_KEY);
+  }
 
-  if (json === undefined || json === null || json === '') {
+  if (bypassCache || json === undefined || json === null || json === '') {
     await UpdateRead(env);
     json = await env.BOOKS.get(READ_KEY);
   }
