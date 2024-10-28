@@ -92,7 +92,7 @@ const UpdateRead = async (env: Env) => {
             };
           };
         }[];
-      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en`).then(
+      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en&key=${env.GOOGLE_API_KEY}`).then(
         (res) => res.json()
       );
 
