@@ -1,6 +1,5 @@
 import { IRequest } from 'itty-router';
 import { Env } from '..';
-import { getBestBook } from './bestedition';
 import { Read, getReadBooks } from './read';
 
 const CURRENTLY_READING_KEY_ID = "currentlyReading";
@@ -65,37 +64,37 @@ const UpdateCurrentlyReading = async (env: Env) => {
 
   let books = data.filter(b => b.list == OPEN_LIBRARY_CURRENTLY_READING_LIST)
 
-  var body: string;
+	let body: string;
 
-  if (books.length == 0) {
+	if (books.length == 0) {
     body = "";
   } else {
     const bookPromises = books.map(async (book) => {
-      var percentComplete = book.percentComplete;
+			const percentComplete = book.percentComplete;
 
-      return `<a href="${book.link}">${book.name}</a> by ${combineList(
+			return `<a href="${book.link}">${book.name}</a> by ${combineList(
         book.authors
       )} <span class="reading-percentage">(${Math.round(
         percentComplete * 100
-      )}%)</span>`;
+      )}% done!)</span>`;
     });
 
     const bookHtml = await Promise.all(bookPromises);
 
-    body = "I'm currently reading " + combineList(bookHtml);
+    body = "Currently, I'm reading " + combineList(bookHtml);
   }
 
-  var current = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
-  if (current != body) {
+	const current = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
+	if (current != body) {
     // We have less writes than reads, so we can save some usage by only writing if the data has changed
     await env.BOOKS.put(CURRENTLY_READING_KEY_ID, body);
   }
 };
 
 const CurrentlyReading = async (request: IRequest, env: Env) => {
-  var body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
+	let body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
 
-  if (body === undefined || body === null) {
+	if (body === undefined || body === null) {
     await UpdateCurrentlyReading(env);
     body = await env.BOOKS.get(CURRENTLY_READING_KEY_ID);
   }
