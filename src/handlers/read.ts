@@ -154,6 +154,10 @@ const UpdateRead = async (env: Env) => {
 					if (data != null) {
 						const json = JSON.parse(data);
 						percentComplete = json.percent;
+
+						if (json.totalPages) {
+							bookMetaData.pages = json.totalPages;
+						}
 					}
 				}
 				bookMetaData.percentComplete = percentComplete;

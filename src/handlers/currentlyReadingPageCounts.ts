@@ -18,11 +18,7 @@ export const CurrentlyReadingPageCounts = async (
   }
   await env.BOOKS.put(workId + "progress", JSON.stringify({ percent, totalPages }));
 
-	const returnJson = JSON.stringify({ workId, percent, totalPages });
-
-  var body =
-    '<meta http-equiv="refresh" content="0; URL=https://dacubeking.com/readingedit/updateProgress?overrideJson=' +
-    encodeURIComponent(returnJson) +
-    '" />';
+  let body =
+    '<meta http-equiv="refresh" content="0; URL=https://dacubeking.com/readingedit/updateProgress" />';
   return new Response(body, { headers });
 };
