@@ -1,6 +1,6 @@
 import { IRequest } from 'itty-router';
 import { Env } from '..';
-import { Read, getReadBooks } from './read';
+import { getReadBooks } from './read';
 
 const CURRENTLY_READING_KEY_ID = "currentlyReading";
 const OPEN_LIBRARY_CURRENTLY_READING_LIST = "Currently Reading"
@@ -10,43 +10,12 @@ const init = {
 		'content-type': 'application/json;charset=UTF-8',
 	},
 };
-
-const host = 'https://openlibrary.org';
-const currReading = host + '/people/dacubeking5259/books/currently-reading.json';
-const recentRead = host + '/people/dacubeking5259/books/already-read.json';
-
-class Book {
-  name!: string;
-  link!: string;
-  authors!: string[];
-  authorLinks!: string[];
-  workId!: string;
-}
-
-/**
- * gatherResponse awaits and returns a response body as a string.
- * Use await gatherResponse(..) in an async function to get the response body
- * @param {Response} response
- */
-async function gatherResponse(response: {
-  json?: any;
-  text?: any;
-  headers?: any;
-}) {
-  const { headers } = response;
-  const contentType = headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return JSON.stringify(await response.json());
-  }
-  return response.text();
-}
-
 function combineList(list: string[]) {
-  var out = "";
+	let out = '';
 
-  // combine all of the elements into a nicely formatted string with commas and an "&"
+	// combine all of the elements into a nicely formatted string with commas and an "&"
   // be sure not to add "&" if there is only one element in the list
-  for (var i = 0; i < list.length; i++) {
+  for (let i = 0; i < list.length; i++) {
     if (i == 0) {
       out += list[i];
     } else if (i == list.length - 1) {

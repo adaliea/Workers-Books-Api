@@ -4,11 +4,13 @@ import { Env } from '.';
 import { CurrentlyReading, UpdateCurrentlyReading } from './handlers/currentlyreading';
 import { Read } from './handlers/read';
 import { CurrentlyReadingPageCounts } from './handlers/currentlyReadingPageCounts';
+import { getHomepageInfo } from './handlers/homepageInfo';
 
 const router = Router();
 
 router
 	.get('/currentlyreading', CurrentlyReading)
+	.get('/homepageinfo', getHomepageInfo)
 	.get('/read', Read)
 	.get('/updateProgress', CurrentlyReadingPageCounts)
 	.get('*', () => new Response('Not found', { status: 404 }));

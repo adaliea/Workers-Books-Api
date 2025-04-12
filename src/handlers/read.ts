@@ -22,6 +22,49 @@ class BookMetaData {
   percentComplete: number = 0;
 }
 
+class GoogleBooksMeta {
+	kind: string;
+	totalItems: number;
+	items: {
+		kind: string;
+		id: string;
+		etag: string;
+		selfLink: string;
+		volumeInfo: {
+			title: string;
+			authors: string[];
+			publishedDate: string;
+			description: string;
+			industryIdentifiers: {
+				type: string;
+				identifier: string;
+			}[];
+			readingModes: {
+				text: boolean;
+				image: boolean;
+			};
+			pageCount: number;
+			printType: string;
+			categories: string[];
+			averageRating: number;
+			ratingsCount: number;
+			maturityRating: string;
+			allowAnonLogging: boolean;
+			contentVersion: string;
+			previewLink: string;
+			panelizationSummary: {
+				containsEpubBubbles: boolean;
+				containsImageBubbles: boolean;
+			};
+			imageLinks: {
+				smallThumbnail: string;
+				thumbnail: string;
+			};
+		};
+	}[];
+}
+
+
 function getCover(coverUrl: string) {
   const parsedUrl = new URL(coverUrl);
   parsedUrl.searchParams.set('edge', "0");
@@ -49,48 +92,8 @@ const UpdateRead = async (env: Env) => {
   ]) {
     let maxResults = 1000;
     for (let i = 0; i < maxResults; i += 40) {
-      let bookJson: {
-        kind: string;
-        totalItems: number;
-        items: {
-          kind: string;
-          id: string;
-          etag: string;
-          selfLink: string;
-          volumeInfo: {
-            title: string;
-            authors: string[];
-            publishedDate: string;
-            description: string;
-            industryIdentifiers: {
-              type: string;
-              identifier: string;
-            }[];
-            readingModes: {
-              text: boolean;
-              image: boolean;
-            };
-            pageCount: number;
-            printType: string;
-            categories: string[];
-            averageRating: number;
-            ratingsCount: number;
-            maturityRating: string;
-            allowAnonLogging: boolean;
-            contentVersion: string;
-            previewLink: string;
-            panelizationSummary: {
-              containsEpubBubbles: boolean;
-              containsImageBubbles: boolean;
-            };
-            imageLinks: {
-              smallThumbnail: string;
-              thumbnail: string;
-            };
-          };
-        }[];
-      } = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en&key=${env.GOOGLE_API_KEY}`).then(
-        (res) => res.json()
+      let bookJson = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en&key=${env.GOOGLE_API_KEY}`).then(
+        (res) => res.json() as Promise<GoogleBooksMeta>
       );
 
       maxResults = bookJson.totalItems;
