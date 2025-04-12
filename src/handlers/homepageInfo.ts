@@ -90,6 +90,7 @@ async function getHomepageInfo(request: IRequest, env: Env) {
 	let body = await env.BOOKS.get(HOMEPAGE_INFO_KEY);
 	if (body === undefined || body === null) {
 		await updateHomepageInfo(env);
+		body = await env.BOOKS.get(HOMEPAGE_INFO_KEY);
 	}
 
 	const headers = {
