@@ -4,8 +4,8 @@ import { Env } from '..';
 const READ_KEY = "READING_LIST";
 
 const GOOGLE_BOOKS_UID = "117863623315850851352"
-const ALREADY_READ = `https://www.googleapis.com/books/v1/users/${GOOGLE_BOOKS_UID}/bookshelves/4/volumes`
-const CURRENTLY_READING = `https://www.googleapis.com/books/v1/users/${GOOGLE_BOOKS_UID}/bookshelves/3/volumes`
+const ALREADY_READ = `https://books.google.com/books?jscmd=ClBrowse&as_coll=4&uid=${GOOGLE_BOOKS_UID}`
+const CURRENTLY_READING = `https://books.google.com/books?jscmd=ClBrowse&as_coll=3&uid=${GOOGLE_BOOKS_UID}`
 
 
 class BookMetaData {
@@ -22,46 +22,48 @@ class BookMetaData {
   percentComplete: number = 0;
 }
 
-class GoogleBooksMeta {
-	kind: string;
-	totalItems: number;
-	items: {
-		kind: string;
-		id: string;
-		etag: string;
-		selfLink: string;
-		volumeInfo: {
-			title: string;
-			authors: string[];
-			publishedDate: string;
-			description: string;
-			industryIdentifiers: {
-				type: string;
-				identifier: string;
-			}[];
-			readingModes: {
-				text: boolean;
-				image: boolean;
-			};
-			pageCount: number;
-			printType: string;
-			categories: string[];
-			averageRating: number;
-			ratingsCount: number;
-			maturityRating: string;
-			allowAnonLogging: boolean;
-			contentVersion: string;
-			previewLink: string;
-			panelizationSummary: {
-				containsEpubBubbles: boolean;
-				containsImageBubbles: boolean;
-			};
-			imageLinks: {
-				smallThumbnail: string;
-				thumbnail: string;
-			};
-		};
-	}[];
+export interface GoogleBooksMeta {
+	id: number
+	title: string
+	description: string
+	num_volumes: number
+	volumes: Volume[]
+	can_modify_metadata: boolean
+	predefined: boolean
+	access: number
+	can_remove_volumes: boolean
+	can_add_volumes: boolean
+}
+
+export interface Volume {
+	title: string
+	authors: string
+	bib_key?: string
+	pub_date: string
+	snippet: string
+	subject?: string
+	info_url: string
+	preview_url: string
+	thumbnail_url?: string
+	num_pages?: number
+	viewability: number
+	preview: string
+	embeddable: boolean
+	list_price?: string
+	sale_price?: string
+	buy_url?: string
+	is_ebook?: boolean
+	preview_ebook_url?: string
+	add_to_my_ebooks_url?: string
+	my_ebooks_url: string
+	sale_price_better?: boolean
+	has_flowing_text?: boolean
+	can_download_pdf: boolean
+	can_download_epub: boolean
+	is_pdf_drm_enabled: boolean
+	is_epub_drm_enabled: boolean
+	subtitle?: string
+	has_scanned_text?: boolean
 }
 
 
@@ -91,69 +93,63 @@ const UpdateRead = async (env: Env) => {
     [ALREADY_READ, ALREADY_READ_KEY],
   ]) {
     let maxResults = 1000;
-    for (let i = 0; i < maxResults; i += 40) {
-      let bookJson = await fetch(`${listLink}?maxResults=40&startIndex=${i}&langRestrict=en&key=${env.GOOGLE_API_KEY}`).then(
+    for (let i = 0; i < maxResults; i += 50) {
+      let bookJson = await fetch(`${listLink}&num=50&start=${i}&hl=en`).then(
         (res) => res.json() as Promise<GoogleBooksMeta>
       );
 
-      maxResults = bookJson.totalItems;
+      maxResults = bookJson.num_volumes;
 
       console.log("bookJson: " + JSON.stringify(bookJson));
 
-      await Promise.all(bookJson.items.map(async (book) => {
+      await Promise.all(bookJson.volumes.map(async (book) => {
 				let percentComplete;
 				let bookCover;
-				if (!book.volumeInfo.imageLinks) {
-					bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
+				if (!book.thumbnail_url) {
+					bookCover = "https://dummyimage.com/600x900/fff/000&text=fea";
 				} else {
-					bookCover = book.volumeInfo.imageLinks.thumbnail;
+					bookCover = book.thumbnail_url;
 				}
 				if (!bookCover) {
-					bookCover = book.volumeInfo.imageLinks.smallThumbnail;
-				}
-				if (!bookCover) {
-					bookCover = "https://via.placeholder.com/128x192.png?text=No+Cover";
+					bookCover = "https://dummyimage.com/600x900/fff/000&text=fea";
 				}
 
-				let splitDate = book.volumeInfo.publishedDate.split("-");
+
+				let splitDate = book.pub_date.split(',');
 				let date;
 				if (splitDate.length === 1) {
 					date = splitDate[0];
 				} else {
-					let year = splitDate[0];
-					let monthNumber = parseInt(splitDate[1]);
-					if (monthNumber < 1 || monthNumber > 12) {
-						date = year;
-					} else {
-						let month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][monthNumber - 1];
-						date = `${month} ${year}`;
-					}
+					let mon_day = splitDate[0].split(' ');
+					date = mon_day[0] + ' ' + splitDate[1];
 				}
 
-				let previewLink = new URL(book.volumeInfo.previewLink);
+				let previewLink = new URL(book.preview_url);
 				previewLink.searchParams.set('printsec', "0");
 				let previewLinkString = previewLink.toString().replace(previewLink.origin, "https://books.google.com");
 
 
 				let bookMetaData = new BookMetaData();
 				books.push(bookMetaData);
-				bookMetaData.name = book.volumeInfo.title;
+				bookMetaData.name = book.title;
 				bookMetaData.link = previewLinkString;
-				bookMetaData.authors = book.volumeInfo.authors;
-				bookMetaData.authorLinks = book.volumeInfo.authors.map((author) =>
+				bookMetaData.authors = [book.authors];
+				bookMetaData.authorLinks = bookMetaData.authors.map((author) =>
 					`https://www.google.com/search?q=${author}`
 				);
 				bookMetaData.published = date;
 				bookMetaData.coverLink = getCover(bookCover);
-				bookMetaData.workId = book.id;
+
+				let infoUrl = new URL(book.info_url)
+				bookMetaData.workId = infoUrl.searchParams.get('id') || '';
 				bookMetaData.list = listName;
-				bookMetaData.pages = book.volumeInfo.pageCount;
+				bookMetaData.pages = book.num_pages;
 
 				if (listName === CURRENTLY_READING_KEY) {
 					percentComplete = 0;
 
 					// get the percent complete
-					const data = await env.BOOKS.get(book.id + 'progress');
+					const data = await env.BOOKS.get(bookMetaData.workId + 'progress');
 					if (data != null) {
 						const json = JSON.parse(data);
 						percentComplete = json.percent;
