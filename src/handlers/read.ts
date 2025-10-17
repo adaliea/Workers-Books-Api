@@ -216,7 +216,7 @@ const Read = async (request: IRequest, env: Env) => {
 
   if (shouldBypassCache || json === undefined || json === null || json === '') {
     await UpdateRead(env);
-    json = await env.BOOKS.get(READ_KEY);
+		json = await env.BOOKS.get(READ_KEY);
   }
 
   const headers = {

@@ -1,129 +1,137 @@
-Utilizes the Openlibrary APIs to serve my books websites
+# Workers Books API
+
+Utilizes the Open Library, Google Books and Last.fm APIs to serve my books and music taste to my websites.
 
 # Endpoints
-## Currently Reading
-https://books.api.dacubeking.com/currentlyreading
 
-Example Response:
-```html
-I'm currently reading <a href="https://openlibrary.org/works/OL66554W">Pride and Prejudice</a> by <a href="https://openlibrary.org/authors/OL21594A">Jane Austen</a>
-```
+## `/read`
 
-## Read
-https://books.api.dacubeking.com/read
+Returns a JSON array of books that I have read or am currently reading.
 
-Example Response:
+**Query Parameters:**
+
+*   `bypassCache` (optional, boolean): If `true`, the cache will be bypassed and the data will be fetched directly from the source.
+
+**Example Response:**
 ```json
 [
     {
         "name": "Along for the Ride",
-        "link": "https://openlibrary.org/books/OL24267579M",
+        "link": "https://books.google.com/books?id=...&printsec=0",
         "authors": [
             "Sarah Dessen"
         ],
         "authorLinks": [
-            "https://openlibrary.org/authors/OL22339A"
+            "https://www.google.com/search?q=Sarah Dessen"
         ],
-        "published": 2009,
+        "published": "2009",
         "coverLink": "https://covers.openlibrary.org/b/id/6416538-L.jpg",
         "loggedDate": "2023/10/17, 03:22:41",
         "workId": "OL15024568W",
         "list": "Already Read",
-        "percentComplete": 0
-    },
-    {
-        "name": "The Inheritance Games",
-        "link": "https://openlibrary.org/books/OL31390786M",
-        "authors": [
-            "Jennifer Lynn Barnes"
-        ],
-        "authorLinks": [
-            "https://openlibrary.org/authors/OL2678446A"
-        ],
-        "published": 2020,
-        "coverLink": "https://covers.openlibrary.org/b/id/14351078-L.jpg",
-        "loggedDate": "2023/08/22, 17:27:15",
-        "workId": "OL21692056W",
-        "list": "Already Read",
-        "pages": 400,
-        "percentComplete": 0
-    },
-    {
-        "name": "The Fault in Our Stars",
-        "link": "https://openlibrary.org/books/OL28480321M",
-        "authors": [
-            "John Green"
-        ],
-        "authorLinks": [
-            "https://openlibrary.org/authors/OL5046634A"
-        ],
-        "published": 2010,
-        "coverLink": "https://covers.openlibrary.org/b/id/13010833-L.jpg",
-        "loggedDate": "2023/08/13, 06:57:25",
-        "workId": "OL16444438W",
-        "list": "Already Read",
-        "pages": 313,
-        "percentComplete": 0
+        "pages": 384,
+        "percentComplete": 1
     }
 ]
 ```
 
-## Best Edition
-https://books.api.dacubeking.com/bestedition?workId=OL21692056W
+## `/homepageinfo`
 
-### Params:
-- workId: OpenLibrary ID for the work we're intrested in
-- render: (optional) `true`/`false`: Generates an html page showing all valid editions. Allows overriding the best edition if desired.
-- bypassCache: (optional) `true`/`false`: Bypass the cache if true
+Returns a JSON object containing information about my favorite music track and the books I'm currently reading.
 
-Example Response:
-```
+**Example Response:**
+```json
 {
-    "name": "The Inheritance Games",
-    "link": "https://openlibrary.org/books/OL31390786M",
-    "authors": [
-        "/authors/OL2678446A"
-    ],
-    "authorLinks": [
-        "https://openlibrary.org/authors/OL2678446A"
-    ],
-    "published": "Jul 27, 2021",
-    "publishers": [
-        "Little Brown & Co"
-    ],
-    "covers": [
-        14351078
-    ],
-    "physicalFormat": "paperback",
-    "pages": 400,
-    "isbn": "9780759555402",
-    "latestRevision": 4
+    "favoriteTrack": {
+        "streamable": {
+            "fulltrack": "0",
+            "#text": "0"
+        },
+        "mbid": "...",
+        "name": "Song Title",
+        "image": [
+            {
+                "size": "small",
+                "#text": "https://lastfm.freetls.fastly.net/i/u/34s/..."
+            }
+        ],
+        "artist": {
+            "url": "https://www.last.fm/music/Artist+Name",
+            "name": "Artist Name",
+            "mbid": "..."
+        },
+        "url": "https://www.last.fm/music/Artist+Name/_/Song+Title",
+        "duration": "225",
+        "@attr": {
+            "rank": "1"
+        },
+        "playcount": "50"
+    },
+    "readingBooks": [
+        {
+            "name": "Book Title",
+            "link": "https://books.google.com/books?id=...&printsec=0",
+            "authors": [
+                "Author Name"
+            ],
+            "authorLinks": [
+                "https://www.google.com/search?q=Author Name"
+            ],
+            "published": "2021",
+            "coverLink": "https://covers.openlibrary.org/b/id/....jpg",
+            "workId": "...",
+            "list": "Currently Reading",
+            "pages": 400,
+            "percentComplete": 0.5
+        }
+    ]
 }
 ```
 
-## Best Edition Edit (requires valid oauth token)
-https://books.api.dacubeking.com/bestedition/edit
+## `/updateProgress`
 
-### Params:
-- workId: OpenLibrary ID for the work we're intrested in
-- overrideData: JSON to return when requesting the best edition for this book.
-- cover: cover id that we want displayed
+Updates the reading progress of a book.
 
-Respone:
+**Query Parameters:**
 
-Redirects to `https://dacubeking.com/readingedit/reading`
+*   `workId` (required, string): The ID of the work to update.
+*   `percent` (required, number): The percentage of the book that has been read.
+*   `totalPages` (required, number): The total number of pages in the book.
 
-## Progress Editing (requires valid oauth token)
-https://dacubeking.com/readingedit/updateProgress
+**Response:**
 
-### Params
-- workId: OpenLibrary ID for the work we're intrested in
-- percent: percentage completion for the book
-- totalPages: total number of pages in the book
+Redirects to `https://dacubeking.com/readingedit/updateProgress`.
 
-Response:
+# Scheduled Tasks
 
-Redirects to `https://dacubeking.com/readingedit/updateProgress` with the `overrideJson` param returning the current state. (This is due to API for accessing this data only updating every 15 minutes)
+The following tasks are scheduled to run periodically:
 
+*   **`UpdateRead`**: Updates the list of read books from Google Books.
+*   **`updateHomepageInfo`**: Updates the homepage info by fetching the latest data from the Last.fm and Google Books APIs.
 
+# Development
 
+To run the project locally, you will need to have [Wrangler](https://developers.cloudflare.com/workers/wrangler/) installed.
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/dacubeking/Workers-Books-Api.git
+    ```
+2.  Install the dependencies:
+    ```bash
+    npm install
+    ```
+3.  Create a `wrangler.toml` file and a `.dev.vars` file with the required environment variables.
+4.  Run the development server:
+    ```bash
+    npm run dev
+    ```
+
+# Deployment
+
+To deploy the project, you will need to have a [Cloudflare account](https://www.cloudflare.com/) and have [Wrangler](https://developers.cloudflare.com/workers/wrangler/) configured.
+
+1.  Build and publish the worker:
+    ```bash
+    npm run deploy
+    ```
