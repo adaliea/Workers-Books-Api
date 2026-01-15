@@ -58,6 +58,36 @@ interface HardcoverUserBook {
   }
 }
 
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return "";
+  // Handle YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
+  const datePart = dateStr.split('T')[0];
+  const parts = datePart.split('-');
+  if (parts.length >= 1) {
+    let year = parts[0];
+    if (year === "0022") {
+      year = "2022";
+    }
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    if (parts.length >= 2) {
+      const monthIndex = parseInt(parts[1]) - 1;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        if (parts.length >= 3) {
+          const day = parseInt(parts[2]);
+          if (monthIndex === 0 && day === 1) {
+            return year;
+          }
+          return `${months[monthIndex]} ${day}, ${year}`;
+        }
+        return `${months[monthIndex]} ${year}`;
+      }
+    }
+    return year;
+  }
+  return dateStr;
+}
+
 const UpdateRead = async (env: Env) => {
   console.log("Updating read books from Hardcover");
 
@@ -124,13 +154,21 @@ const UpdateRead = async (env: Env) => {
       book.name = ub.book.title;
       book.link = `https://hardcover.app/books/${ub.book.slug}`;
 
-      book.authors = ub.book.contributions.map(c => c.author.name);
-      book.authorLinks = ub.book.contributions.map(c => `https://hardcover.app/authors/${c.author.slug}`);
+            book.authors = ub.book.contributions.map(c => c.author.name);
 
-      book.published = ub.book.release_date;
-      book.coverLink = ub.book.image ? ub.book.image.url : "https://dummyimage.com/600x900/fff/000&text=No+Cover";
-      book.loggedDate = ub.last_read_date || ub.date_added;
-      book.workId = ub.book.id.toString();
+            book.authorLinks = ub.book.contributions.map(c => `https://hardcover.app/authors/${c.author.slug}`);
+
+            
+
+            book.published = formatDate(ub.book.release_date);
+
+            book.coverLink = ub.book.image ? ub.book.image.url : "https://dummyimage.com/600x900/fff/000&text=No+Cover";
+
+            book.loggedDate = formatDate(ub.last_read_date || ub.date_added);
+
+            book.workId = ub.book.id.toString();
+
+      
       book.pages = ub.book.pages;
 
       if (ub.status_id === STATUS_CURRENTLY_READING) {
