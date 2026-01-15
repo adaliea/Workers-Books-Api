@@ -1,10 +1,19 @@
 name = "books"
 main = "./src/index.ts"
 compatibility_date = "2022-05-03"
+preview_urls=true
+workers_dev=true
+
+routes = [{ pattern="books.api.dacubeking.com", zone_name="dacubeking.com", custom_domain=true }]
 
 kv_namespaces = [
-  { binding = "BOOKS", id = "d2a0fa80ed1f427898d78294cd9c5c63" , preview_id = "b6d0596c71f54366ac6be7e86dbaa729" }
+	{ binding = "BOOKS", id = "d2a0fa80ed1f427898d78294cd9c5c63" , preview_id = "b6d0596c71f54366ac6be7e86dbaa729" }
 ]
+
+
+[limits]
+cpu_ms=15
+
 
 [triggers]
 crons = ["*/15 * * * *"]
