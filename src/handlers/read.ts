@@ -2,11 +2,12 @@ import { IRequest } from 'itty-router';
 import { Env } from '..';
 
 const READ_KEY = "READING_LIST";
+const ALREADY_READ_KEY = "Already Read";
+const CURRENTLY_READING_KEY = "Currently Reading";
 
-const GOOGLE_BOOKS_UID = "117863623315850851352"
-const ALREADY_READ = `https://books.google.com/books?jscmd=ClBrowse&as_coll=4&uid=${GOOGLE_BOOKS_UID}`
-const CURRENTLY_READING = `https://books.google.com/books?jscmd=ClBrowse&as_coll=3&uid=${GOOGLE_BOOKS_UID}`
-
+// Hardcover Status IDs
+const STATUS_CURRENTLY_READING = 2;
+const STATUS_READ = 3;
 
 class BookMetaData {
   name!: string;
@@ -22,188 +23,161 @@ class BookMetaData {
   percentComplete: number = 0;
 }
 
-export interface GoogleBooksMeta {
-	id: number
-	title: string
-	description: string
-	num_volumes: number
-	volumes: Volume[]
-	can_modify_metadata: boolean
-	predefined: boolean
-	access: number
-	can_remove_volumes: boolean
-	can_add_volumes: boolean
+interface HardcoverResponse {
+  data: {
+    me: [
+      {
+        user_books: HardcoverUserBook[]
+      }
+    ]
+  }
 }
 
-export interface Volume {
-	title: string
-	authors: string
-	bib_key?: string
-	pub_date: string
-	snippet: string
-	subject?: string
-	info_url: string
-	preview_url: string
-	thumbnail_url?: string
-	num_pages?: number
-	viewability: number
-	preview: string
-	embeddable: boolean
-	list_price?: string
-	sale_price?: string
-	buy_url?: string
-	is_ebook?: boolean
-	preview_ebook_url?: string
-	add_to_my_ebooks_url?: string
-	my_ebooks_url: string
-	sale_price_better?: boolean
-	has_flowing_text?: boolean
-	can_download_pdf: boolean
-	can_download_epub: boolean
-	is_pdf_drm_enabled: boolean
-	is_epub_drm_enabled: boolean
-	subtitle?: string
-	has_scanned_text?: boolean
+interface HardcoverUserBook {
+  status_id: number;
+  date_added: string;
+  last_read_date: string;
+  user_book_reads: {
+    progress: number;
+  }[];
+  book: {
+    title: string;
+    slug: string;
+    contributions: {
+      author: {
+        name: string;
+        slug: string;
+      }
+    }[];
+    image: {
+      url: string;
+    };
+    release_date: string;
+    pages: number;
+    id: number;
+  }
 }
-
-
-function getCover(coverUrl: string) {
-  const parsedUrl = new URL(coverUrl);
-  parsedUrl.searchParams.set('edge', "0");
-  //parsedUrl.searchParams.set('zoom', "4");
-  return parsedUrl.toString().replace("http://", "https://");
-}
-
-const init = {
-  headers: {
-    "content-type": "application/json;charset=UTF-8",
-  },
-};
-
-const ALREADY_READ_KEY = "Already Read";
-const CURRENTLY_READING_KEY = "Currently Reading";
 
 const UpdateRead = async (env: Env) => {
-  // keep getting pages until we get to the end
-  let books: BookMetaData[] = [];
+  console.log("Updating read books from Hardcover");
 
-  console.log("Updating read books");
-  for (let [listLink, listName] of [
-    [CURRENTLY_READING, CURRENTLY_READING_KEY],
-    [ALREADY_READ, ALREADY_READ_KEY],
-  ]) {
-    let maxResults = 1000;
-    for (let i = 0; i < maxResults; i += 50) {
-      let bookJson = await fetch(`${listLink}&num=50&start=${i}&hl=en`).then(
-        (res) => res.json() as Promise<GoogleBooksMeta>
-      );
-
-      maxResults = bookJson.num_volumes;
-
-      console.log("bookJson: " + JSON.stringify(bookJson));
-
-      await Promise.all(bookJson.volumes.map(async (book) => {
-				let percentComplete;
-				let bookCover;
-				if (!book.thumbnail_url) {
-					bookCover = "https://dummyimage.com/600x900/fff/000&text=fea";
-				} else {
-					bookCover = book.thumbnail_url;
-				}
-				if (!bookCover) {
-					bookCover = "https://dummyimage.com/600x900/fff/000&text=fea";
-				}
-
-
-				let splitDate = book.pub_date.split(',');
-				let date;
-				if (splitDate.length === 1) {
-					date = splitDate[0];
-				} else {
-					let mon_day = splitDate[0].split(' ');
-					date = mon_day[0] + ' ' + splitDate[1];
-				}
-
-				let previewLink = new URL(book.preview_url);
-				previewLink.searchParams.set('printsec', "0");
-				let previewLinkString = previewLink.toString().replace(previewLink.origin, "https://books.google.com");
-
-
-				let bookMetaData = new BookMetaData();
-				books.push(bookMetaData);
-				bookMetaData.name = book.title;
-				bookMetaData.link = previewLinkString;
-				bookMetaData.authors = [book.authors];
-				bookMetaData.authorLinks = bookMetaData.authors.map((author) =>
-					`https://www.google.com/search?q=${author}`
-				);
-				bookMetaData.published = date;
-				bookMetaData.coverLink = getCover(bookCover);
-
-				let infoUrl = new URL(book.info_url)
-				bookMetaData.workId = infoUrl.searchParams.get('id') || '';
-				bookMetaData.list = listName;
-				bookMetaData.pages = book.num_pages;
-
-				if (listName === CURRENTLY_READING_KEY) {
-					percentComplete = 0;
-
-					// get the percent complete
-					const data = await env.BOOKS.get(bookMetaData.workId + 'progress');
-					if (data != null) {
-						const json = JSON.parse(data);
-						percentComplete = json.percent;
-
-						if (json.totalPages) {
-							bookMetaData.pages = json.totalPages;
-						}
-					}
-				}
-				bookMetaData.percentComplete = percentComplete;
-			}));
+  const query = `
+    query GetMyBooks {
+      me {
+        user_books(where: {status_id: {_in: [${STATUS_CURRENTLY_READING}, ${STATUS_READ}]}}) {
+          status_id
+          date_added
+          last_read_date
+          user_book_reads {
+            progress
+          }
+          book {
+            title
+            slug
+            pages
+            contributions {
+              author {
+                name
+                slug
+              }
+            }
+            image {
+              url
+            }
+            release_date
+            id
+          }
+        }
+      }
     }
-  }
+  `;
 
+  try {
+    const response = await fetch('https://api.hardcover.app/v1/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': env.HARDCOVER_API_TOKEN
+      },
+      body: JSON.stringify({ query })
+    });
 
-  //Sort the books by the logged date
-
-  const sortByLoggedDate = (a: BookMetaData, b: BookMetaData) => {
-    if (a.loggedDate === undefined || b.loggedDate === undefined) {
-      return 0;
+    if (!response.ok) {
+      console.error("Failed to fetch from Hardcover", await response.text());
+      return;
     }
-    // Put the currently reading books at the top
-    if (a.list === CURRENTLY_READING_KEY && b.list !== CURRENTLY_READING_KEY) {
-      return -1;
+
+    const json = await response.json() as HardcoverResponse;
+
+    // @ts-ignore
+    if (!json.data || !json.data.me || json.data.me.length === 0) {
+        console.error("No user data found in Hardcover response");
+        return;
     }
-    if (a.list !== CURRENTLY_READING_KEY && b.list === CURRENTLY_READING_KEY) {
-      return 1;
+
+    // Safe access
+    const me = Array.isArray(json.data.me) ? json.data.me[0] : json.data.me as any;
+    const userBooks = me.user_books as HardcoverUserBook[];
+
+    let books: BookMetaData[] = userBooks.map(ub => {
+      let book = new BookMetaData();
+      book.name = ub.book.title;
+      book.link = `https://hardcover.app/books/${ub.book.slug}`;
+
+      book.authors = ub.book.contributions.map(c => c.author.name);
+      book.authorLinks = ub.book.contributions.map(c => `https://hardcover.app/authors/${c.author.slug}`);
+
+      book.published = ub.book.release_date;
+      book.coverLink = ub.book.image ? ub.book.image.url : "https://dummyimage.com/600x900/fff/000&text=No+Cover";
+      book.loggedDate = ub.last_read_date || ub.date_added;
+      book.workId = ub.book.id.toString();
+      book.pages = ub.book.pages;
+
+      if (ub.status_id === STATUS_CURRENTLY_READING) {
+        book.list = CURRENTLY_READING_KEY;
+        if (book.pages && book.pages > 0) {
+            // Get the max progress from all reads (assuming simplified logic)
+					book.percentComplete = ub.user_book_reads.reduce((max, read) => Math.max(max, read.progress), 0) / 100.0;
+        } else {
+            book.percentComplete = 0;
+        }
+      } else {
+        book.list = ALREADY_READ_KEY;
+        book.percentComplete = 1;
+      }
+
+      return book;
+    });
+
+    const sortByLoggedDate = (a: BookMetaData, b: BookMetaData) => {
+      if (a.loggedDate === undefined || b.loggedDate === undefined) {
+        return 0;
+      }
+      if (a.list === CURRENTLY_READING_KEY && b.list !== CURRENTLY_READING_KEY) {
+        return -1;
+      }
+      if (a.list !== CURRENTLY_READING_KEY && b.list === CURRENTLY_READING_KEY) {
+        return 1;
+      }
+      return new Date(b.loggedDate).getTime() - new Date(a.loggedDate).getTime();
+    };
+
+    books.sort(sortByLoggedDate);
+
+    if (books.length < 1) {
+      console.log("No books found");
+      return;
     }
-    return new Date(b.loggedDate).getTime() - new Date(a.loggedDate).getTime();
-  };
 
-  //Sort the books by the logged date
-  books.sort(sortByLoggedDate);
+    const cachedJson = JSON.stringify(books);
+    const current = await env.BOOKS.get(READ_KEY);
 
-  if (books.length < 1) {
-    console.log("No books found");
-    return;
-  }
-  //console.log("books: " + JSON.stringify(books));
+    if (cachedJson != current) {
+      await env.BOOKS.put(READ_KEY, cachedJson);
+    }
 
-  await env.BOOKS.put(READ_KEY, JSON.stringify(books));
-
-  if (books.length < 1) {
-    console.log("No books found");
-    return;
-  }
-  //console.log("books: " + JSON.stringify(books));
-
-	const json = JSON.stringify(books);
-	const current = await env.BOOKS.get(READ_KEY);
-
-	if (json != current) {
-    // We have less writes than reads, so we can save some usage by only writing if the data has changed
-    await env.BOOKS.put(READ_KEY, json);
+  } catch (e) {
+    console.error("Error updating read books:", e);
   }
 };
 
@@ -245,4 +219,4 @@ const getReadBooks = async (env: Env, bypassCache = false): Promise<BookMetaData
   return JSON.parse(json)
 }
 
-export { UpdateRead, Read, getCover, getReadBooks };
+export { UpdateRead, Read, getReadBooks };

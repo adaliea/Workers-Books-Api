@@ -7,8 +7,8 @@ export interface Env {
 	//This will be auto-populated with the KV Namespace that is bound in the wrangler.toml
 	//and exposes all the methods you'll need (get, put, list etc.)
 	BOOKS: KVNamespace;
-	GOOGLE_API_KEY: string;
 	LAST_FM_API_KEY: string;
+	HARDCOVER_API_TOKEN: string;
 }
 
 export default {
